@@ -13,13 +13,13 @@ class Exercise3Test extends FunSpec with ShouldMatchers {
     it("should interpret Put correctly") {
       val start = Map[Key, Value]()
       val end = interpretPure(put(Key("a"), Value("x")), start)
-      end should equal (Map(Key("a") -> Value("x")))
+      end should equal(Map(Key("a") -> Value("x")))
     }
 
     it("should interpret Delete correctly") {
       val start = Map(Key("DELETEME") -> Value("XXX"))
       val end = interpretPure(delete(Key("DELETEME")), start)
-      end should equal (Map())
+      end should equal(Map())
     }
 
 
@@ -31,11 +31,11 @@ class Exercise3Test extends FunSpec with ShouldMatchers {
       } yield ()
 
       val start = Map(Key("a") -> Value("apples"),
-                      Key("c") -> Value("DELETE ME"))
+        Key("c") -> Value("DELETE ME"))
       val end = interpretPure(script, start)
 
-      end should equal (Map(Key("a") -> Value("apples"),
-                            Key("b") -> Value("apples")))
+      end should equal(Map(Key("a") -> Value("apples"),
+        Key("b") -> Value("apples")))
     }
   }
 
@@ -43,13 +43,13 @@ class Exercise3Test extends FunSpec with ShouldMatchers {
     it("should interpret Put correctly") {
       val mutableStore = mutable.Map[Key, Value]()
       interpretImpure(put(Key("a"), Value("x")), mutableStore)
-      mutableStore should equal (Map(Key("a") -> Value("x")))
+      mutableStore should equal(Map(Key("a") -> Value("x")))
     }
 
     it("should interpret Delete correctly") {
       val mutableStore = mutable.Map[Key, Value](Key("DELETEME") -> Value("XXX"))
       val end = interpretImpure(delete(Key("DELETEME")), mutableStore)
-      mutableStore should equal (Map())
+      mutableStore should equal(Map())
     }
 
 
@@ -62,12 +62,12 @@ class Exercise3Test extends FunSpec with ShouldMatchers {
       } yield ()
 
       val mutableStore = mutable.Map(Key("a") -> Value("apples"),
-                                     Key("c") -> Value("DELETE ME"))
+        Key("c") -> Value("DELETE ME"))
 
       interpretImpure(script, mutableStore)
 
-      mutableStore should equal (Map(Key("a") -> Value("apples"),
-                                     Key("b") -> Value("apples")))
+      mutableStore should equal(Map(Key("a") -> Value("apples"),
+        Key("b") -> Value("apples")))
     }
   }
 }

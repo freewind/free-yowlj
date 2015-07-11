@@ -1,12 +1,12 @@
 package kenbot.yowfree.tank.maths
 
 object Percentage {
-  
+
   val One = Percentage(1.0)
   val Zero = Percentage(0.0)
-  
+
   def apply(amount: Double): Percentage = new Percentage(normalize(amount))
-  
+
   def normalize(amount: Double): Double = {
     if (amount < 0) 0
     else if (amount > 1) 1
