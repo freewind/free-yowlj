@@ -40,10 +40,10 @@ case class Return[F[_], +A](a: A) extends Free[F, A] {
    * Implement flatMap and map for Return. 
    */
   override def flatMap[B](f: A => Free[F, B])
-                         (implicit F: Functor[F]): Free[F, B] = ???
+                         (implicit F: Functor[F]): Free[F, B] = f(a)
 
   override def map[B](f: A => B)
-                     (implicit F: Functor[F]): Free[F, B] = ???
+                     (implicit F: Functor[F]): Free[F, B] = Return(f(a))
 }
 
 
@@ -67,10 +67,10 @@ case class Suspend[F[_], A](next: F[Free[F, A]]) extends Free[F, A] {
    * - If you're stuck, look at the type signatures! Just fit the puzzle pieces together.
    */
   override def flatMap[B](f: A => Free[F, B])
-                         (implicit F: Functor[F]): Free[F, B] = ???
+                         (implicit F: Functor[F]): Free[F, B] = Suspend(next.map(_.flatMap(f)))
 
   override def map[B](f: A => B)
-                     (implicit F: Functor[F]): Free[F, B] = ???
+                     (implicit F: Functor[F]): Free[F, B] = Suspend(next.map(_.map(f)))
 }
 
 object Free {
@@ -83,7 +83,7 @@ object Free {
    * Hint: If it won't typecheck, try explicitly providing the [F,A] 
    * type parameters where appropriate in the function.
    */
-  def liftF[F[_] : Functor, A](fa: F[A]): Free[F, A] = ???
+  def liftF[F[_] : Functor, A](fa: F[A]): Free[F, A] = Suspend(fa.map[Free[F, A]](Return(_)))
 
 }
 

@@ -35,8 +35,11 @@ object Trampolines {
    * with a Free -- flatMap, because it is a monad, and pattern matching, which can destructure it
    * into Suspend or Return.
    */
-  //@tailrec
-  final def runTrampoline[A](trampoline: Trampoline[A]): A = ???
+  @tailrec
+  final def runTrampoline[A](trampoline: Trampoline[A]): A = trampoline match {
+    case Return(a) => a
+    case Suspend(next) => runTrampoline(next())
+  }
 }
 
 
@@ -54,7 +57,14 @@ object ListAppendRighteousTrampoline extends ListAppendProgram {
    * A Free also has 2 cases: Suspend which recurses, and Return which terminates and returns.
    *
    */
-  def listAppend[A](list1: List[A], list2: List[A]): Trampoline[List[A]] = ???
+  def listAppend[A](list1: List[A], list2: List[A]): Trampoline[List[A]] = list1 match {
+    case Nil => Return(list2)
+    case head :: tail => Suspend(() => for {
+      h <- Return(head)
+      ll <- listAppend(tail, list2)
+    } yield h :: ll)
+  }
+
 
   def runSolution[A](list1: List[A], list2: List[A]): List[A] = runTrampoline(listAppend(list1, list2))
 }

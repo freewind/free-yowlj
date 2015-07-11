@@ -1,6 +1,7 @@
 package kenbot.yowfree.tank.ai
 
 import Moves._
+import kenbot.yowfree.tank.maths.Angle
 import scalaz._
 import Scalaz._
 import scalaz.Free._
@@ -25,14 +26,14 @@ trait TankAIMixin {
    *
    * Implement loop, such that the given AI script is repeated forever.
    */
-  def loop(ai: AI[Unit]): AI[Unit] = ???
+  def loop(ai: AI[Unit]): AI[Unit] = ai.flatMap(_ => loop(ai))
 
   /**
    * Exercise 4b. 
    *
    * Implement when, which conditionally executes the given script.
    */
-  def when(b: Boolean)(ai: => AI[Unit]): AI[Unit] = ???
+  def when(b: Boolean)(ai: => AI[Unit]): AI[Unit] = if (b) ai else Return(())
 
   final def unless(b: Boolean)(ai: => AI[Unit]): AI[Unit] = when(!b)(ai)
 
@@ -49,7 +50,9 @@ trait TankAIMixin {
    *
    */
   implicit class AIOps[A](ai: AI[A]) {
-    def *(times: Int): AI[A] = ???
+    def *(times: Int): AI[A] = (0 until times - 1).map(_ => ai).foldLeft(ai) {
+      case (r, item) => r.flatMap(_ => item)
+    }
   }
 
   /**

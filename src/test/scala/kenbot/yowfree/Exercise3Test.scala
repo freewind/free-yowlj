@@ -69,5 +69,25 @@ class Exercise3Test extends FunSpec with ShouldMatchers {
       mutableStore should equal(Map(Key("a") -> Value("apples"),
         Key("b") -> Value("apples")))
     }
+
+    it("should follow a script faithfully2") {
+
+      val script = for {
+        a <- get(Key("a"))
+        _ <- put(Key("b"), a)
+        _ <- delete(Key("a"))
+        _ <- delete(Key("c"))
+        _ <- put(Key("a"), Value("xxx"))
+        x <- get(Key("a"))
+      } yield x
+
+      val mutableStore = mutable.Map(Key("a") -> Value("apples"),
+        Key("c") -> Value("DELETE ME"))
+
+      interpretImpure(script, mutableStore)
+
+      mutableStore should equal(Map(Key("a") -> Value("xxx"),
+        Key("b") -> Value("apples")))
+    }
   }
 }

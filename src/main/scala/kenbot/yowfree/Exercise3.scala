@@ -1,6 +1,6 @@
 package kenbot.yowfree
 
-import kenbot.yowfree.Free.liftF;
+import kenbot.yowfree.Free.liftF
 import scalaz.Functor
 import scala.collection.mutable
 
@@ -43,11 +43,11 @@ case class Value(value: String) {
  * def pluck(): Durian           =====> case class Pluck[A](f: Durian => A)
  *
  */
-case class Get[Next]
+case class Get[Next](key: Key, f: Value => Next) extends KVS[Next]
 // implement me
-case class Put[Next]
+case class Put[Next](key: Key, value: Value, next: Next) extends KVS[Next]
 // implement me
-case class Delete[Next]
+case class Delete[Next](key: Key, next: Next) extends KVS[Next]
 // implement me
 
 // ADT translation of fantasy API
@@ -58,7 +58,11 @@ sealed trait KVS[+Next] {
    *
    * This is also a boring mechanical translation of the data cases.  
    */
-  def map[B](f: Next => B): KVS[B] = ???
+  def map[B](f: Next => B): KVS[B] = this match {
+    case Get(key, h) => Get(key, x => f(h(x)))
+    case Put(key, value, next) => Put(key, value, f(next))
+    case Delete(key, next) => Delete(key, f(next))
+  }
 }
 
 object KVS {
@@ -85,11 +89,11 @@ object KVS {
    * to make Script[Value] typecheck?
    *
    */
-  def get(key: Key): Script[Value] = ???
+  def get(key: Key): Script[Value] = Free.liftF(Get(key, identity))
 
-  def put(key: Key, value: Value): Script[Unit] = ???
+  def put(key: Key, value: Value): Script[Unit] = Free.liftF(Put(key, value, ()))
 
-  def delete(key: Key): Script[Unit] = ???
+  def delete(key: Key): Script[Unit] = Free.liftF(Delete(key, ()))
 
 
   // Now we can write pure scripts using free monads!  Naturally, we'll exercise great
@@ -99,8 +103,7 @@ object KVS {
   val larceny: Script[Unit] = for {
     accountId <- get(Key("swiss-bank-account-id"))
     accountKey = Key(accountId.value)
-    amount <- get(accountKey) //  <-- 3d. Combine these 2 lines, using "modify".
-    _ <- put(accountKey, amount + 1000000) //  <--
+    _ <- modify(accountKey, _ + 1000000)
     _ <- put(Key("bermuda-airport"), Value("getaway car"))
     _ <- delete(Key("tax-records"))
   } yield ()
@@ -119,7 +122,10 @@ object KVS {
    * to modify the account balance.
    *
    */
-  def modify(key: Key, f: Value => Value): Script[Unit] = ???
+  def modify(key: Key, f: Value => Value): Script[Unit] = for {
+    amount <- get(key)
+    _ <- put(key, f(amount))
+  } yield ()
 
 
   /**
@@ -132,7 +138,14 @@ object KVS {
    *
    * Hint: Pattern matching
    */
-  def interpretPure[A](script: Script[A], dataStore: Map[Key, Value]): Map[Key, Value] = ???
+  def interpretPure[A](script: Script[A], dataStore: Map[Key, Value]): Map[Key, Value] = script match {
+    case Return(()) => dataStore
+    case Return(Get(key, f: (Value => Script[_]))) => interpretPure(f(dataStore(key)), dataStore)
+    case Return(Put(key, value, next: Script[_])) => interpretPure(next, dataStore + (key -> value))
+    case Return(Delete(key, next: Script[_])) => interpretPure(next, dataStore - key)
+    case Suspend(next) => interpretPure(Return(next), dataStore)
+    case e => ???
+  }
 
 
   /**
@@ -143,7 +156,18 @@ object KVS {
    *
    * Get, Put and Delete should all do what you what expect.
    */
-  def interpretImpure[A](script: Script[A], dataStore: mutable.Map[Key, Value]): Unit = ???
+  def interpretImpure[A](script: Script[A], dataStore: mutable.Map[Key, Value]): Unit = script match {
+    case Return(Get(key, f: (Value => Script[_]))) => interpretImpure(f(dataStore(key)), dataStore)
+    case Return(Put(key, value, next: Script[_])) =>
+      dataStore += (key -> value)
+      interpretImpure(next, dataStore)
+    case Return(Delete(key, next: Script[_])) =>
+      dataStore -= key
+      interpretImpure(next, dataStore)
+    case Suspend(next) =>
+      interpretImpure(Return(next), dataStore)
+    case Return(_) =>
+  }
 }
 
 
